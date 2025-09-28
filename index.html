@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>friending.im | A Digital Monument</title>
+    <style>
+        :root {
+            --bg: #0A0E1B; /* Deep Navy from Brand Guide */
+            --ink: #F8F7F4; /* Off-White from Brand Guide */
+            --archival-blue: #7DF9FF; /* A custom luminous color for this project */
+            --archival-blue-glow: rgba(125, 249, 255, 0.5);
+            --muted: #A8A7A4;
+            --accent: #A95C3D;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--ink);
+            font-family: 'Lora', serif; /* Lora for narrative */
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 3rem;
+            box-sizing: border-box;
+        }
+
+        .title-container {
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--ink);
+            text-shadow: 0 0 15px var(--archival-blue-glow);
+        }
+
+        h2 {
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--muted);
+            margin: 0.5rem 0 0 0;
+            font-style: italic;
+        }
+
+        .footer-container {
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            color: var(--muted);
+            opacity: 0.7;
+            pointer-events: auto; /* Make footer clickable */
+        }
+
+        .footer-container a {
+            color: var(--muted);
+            text-decoration: none;
+        }
+
+        .footer-container a:hover span {
+             color: var(--archival-blue);
+        }
+
+        .footer-container span {
+            color: var(--archival-blue);
+            text-shadow: 0 0 5px var(--archival-blue-glow);
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        
+        .instruction, #completion-message {
+             font-family: 'Lora', serif;
+             position: absolute;
+             top: 50%;
+             left: 50%;
+             transform: translate(-50%, -50%);
+             font-size: 1.2rem;
+             color: var(--muted);
+             opacity: 1;
+             transition: opacity 1.5s ease-in-out;
+             text-align: center;
+             line-height: 1.6;
+        }
+        
+        #completion-message {
+            opacity: 0;
+            font-size: 1.5rem;
+            color: var(--ink);
+            pointer-events: none;
+        }
+
+        #completion-message.visible {
+            opacity: 1;
+        }
+
+
+        /* Artist Statement Styles */
+        #statement-link {
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            transition: color 0.2s;
+        }
+        #statement-link:hover {
+            color: var(--archival-blue);
+        }
+
+        #statement-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 14, 27, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #statement-modal.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .statement-content {
+            max-width: 600px;
+            padding: 2.5rem;
+            font-family: 'Lora', serif;
+            font-size: 1.1rem;
+            line-height: 1.7;
+            color: var(--muted);
+            cursor: pointer;
+        }
+        .statement-content h3 {
+            font-family: 'Lora', serif;
+            color: var(--ink);
+            font-size: 1.5rem;
+            margin: 0 0 1.5rem 0;
+            font-weight: 600;
+        }
+        .statement-content p {
+            margin-bottom: 1.5rem;
+        }
+        .statement-content strong {
+            color: var(--ink);
+            font-weight: 600;
+        }
+        .statement-content em {
+            color: var(--archival-blue);
+            font-style: normal;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Lora:ital,wght@0,400;0,600;1,400&family=Poppins:wght@600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="overlay">
+        <div class="title-container">
+            <h1>friending.im</h1>
+            <h2>A constellation of early connections.</h2>
+        </div>
+        <div id="instruction" class="instruction">
+            <p>Drifting through the endless scroll,</p>
+            <p>each of us a solitary point of light.</p>
+            <p>Then, a notification. A connection. A line is drawn.</p>
+        </div>
+         <div id="completion-message">
+            <p>The constellation is complete.</p>
+            <p>A network of memories, rekindled.</p>
+        </div>
+        <div class="footer-container">
+            <p><a id="statement-link">Read Artist's Statement</a></p>
+            <p>An artifact unearthed and preserved by <a href="https://unearth.im" target="_blank" rel="noopener noreferrer"><span>unearth.im</span></a></p>
+        </div>
+    </div>
+
+    <div id="statement-modal">
+        <div class="statement-content">
+            <h3>Artist's Statement: The Gerund as Ritual</h3>
+            <p>
+                In the archives of the social web (c. 2004-2012), the most human stories are not found in the platform's official verbs—<em>share, post, like</em>—but in the gerunds the community created to describe its own rituals.
+            </p>
+            <p>
+                <strong>Friending. Poking. Tagging.</strong> These are not just actions; they are the ghosts of a billion tiny, tentative reach-outs across the digital void. They are the messy, human evidence of a generation learning to connect through a screen.
+            </p>
+            <p>
+                This artifact, <em>friending.im</em>, is an interactive monument to that process. It visualizes our digital lives as solitary nodes, drifting in the dark until we perform the ritual. By <strong>clicking and dragging</strong> from one point of light to another, you are not just connecting two dots—you are re-enacting the simple, profound act of <em>friending</em>, and for a moment, making the constellation a little brighter.
+            </p>
+            <p style="text-align: center; font-style: italic; opacity: 0.7; margin-top: 2rem;">(click anywhere to close)</p>
+        </div>
+    </div>
+
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let nodes = [];
+        let lines = [];
+        let dragging = false;
+        let startNode = null;
+        let mouse = { x: 0, y: 0 };
+        let audioCtx; 
+        let isComplete = false; // --- NEW: State to track if the easter egg has been triggered ---
+
+        const NODE_RADIUS = 6;
+        const LINE_WIDTH = 1.5;
+        const PULSE_DURATION = 1000;
+        const ARCHIVAL_BLUE = 'rgba(125, 249, 255, 0.7)';
+        const ARCHIVAL_BLUE_GLOW = 'rgba(125, 249, 255, 0.3)';
+        
+        const TOP_MARGIN = 150;
+        const BOTTOM_MARGIN = 150;
+        
+        const WEB2_ARTIFACTS = [
+            'AIM Buddy List', 'The Wall', 'Poking', 'Tagging Photos', 'MySpace',
+            'LiveJournal', 'Friendster', 'Zynga', 'GeoCities', 'MySpace Top 8',
+            'Away Message', 'Friend Request', 'MSN Messenger', 'ICQ "Uh-Oh!"',
+            'Friendster Testimonial', 'Relationship Status', 'Checking In',
+            'Profile Song', 'Leaving a Comment', 'Liking', 'The News Feed',
+            'Mutual Friends', 'Keypals', 'BFF', 'Adding to Favorites',
+            'You\'ve Got Mail!', 'Sharing a Link'
+        ];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            init();
+        }
+
+        function init() {
+            nodes = [];
+            lines = [];
+            isComplete = false; // Reset on resize
+            const interactiveHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
+
+            for (let i = 0; i < WEB2_ARTIFACTS.length; i++) {
+                nodes.push({
+                    x: Math.random() * width,
+                    y: TOP_MARGIN + Math.random() * interactiveHeight,
+                    vx: (Math.random() - 0.5) * 0.2,
+                    vy: (Math.random() - 0.5) * 0.2,
+                    radius: NODE_RADIUS,
+                    label: WEB2_ARTIFACTS[i],
+                    pulse: 0
+                });
+            }
+        }
+        
+        function playConnectionSound() {
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+
+            const frequencies = [523.25, 659.25, 783.99, 1046.50]; 
+            
+            frequencies.forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                osc.connect(masterGain);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now);
+                osc.start(now + i * 0.02); 
+                osc.stop(now + 1.5);
+            });
+
+            masterGain.gain.setValueAtTime(0, now);
+            masterGain.gain.linearRampToValueAtTime(0.1, now + 0.05);
+            masterGain.gain.exponentialRampToValueAtTime(0.00001, now + 1.5);
+        }
+        
+        // --- NEW: A more "regal" sound for completion ---
+        function playCompletionSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+            
+            // A low, resonant C Major chord for a regal feel
+            const frequencies = [130.81, 261.63, 392.00, 523.25];
+            
+            frequencies.forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                osc.connect(masterGain);
+                // Use a mix of sine and triangle for a richer, softer tone
+                osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+                osc.frequency.setValueAtTime(freq, now);
+                osc.start(now);
+                osc.stop(now + 4); // Let it ring out longer
+            });
+
+            masterGain.gain.setValueAtTime(0, now);
+            masterGain.gain.linearRampToValueAtTime(0.2, now + 0.1); // Slower, more majestic attack
+            masterGain.gain.exponentialRampToValueAtTime(0.00001, now + 4); // Very long decay
+        }
+
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            const now = Date.now();
+
+            lines.forEach(line => {
+                const age = now - line.createdAt;
+                let alpha = 0.7;
+                let lineWidth = LINE_WIDTH;
+                let shadowBlur = 0;
+                
+                if (age < PULSE_DURATION) {
+                    const pulseProgress = age / PULSE_DURATION;
+                    const easeOut = 1 - Math.pow(1 - pulseProgress, 3); 
+                    alpha = 0.7 + (1 - easeOut) * 0.8;
+                    lineWidth = LINE_WIDTH + (1 - easeOut) * 2;
+                    shadowBlur = (1 - easeOut) * 20;
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(line.start.x, line.start.y);
+                ctx.lineTo(line.end.x, line.end.y);
+                ctx.strokeStyle = `rgba(125, 249, 255, ${alpha})`;
+                ctx.lineWidth = lineWidth;
+                ctx.shadowColor = ARCHIVAL_BLUE_GLOW;
+                ctx.shadowBlur = shadowBlur;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            });
+
+            if (dragging && startNode) {
+                ctx.beginPath();
+                ctx.moveTo(startNode.x, startNode.y);
+                ctx.lineTo(mouse.x, mouse.y);
+                ctx.strokeStyle = ARCHIVAL_BLUE;
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            nodes.forEach(node => {
+                node.x += node.vx;
+                node.y += node.vy;
+                
+                if (node.x < node.radius || node.x > width - node.radius) node.vx *= -1;
+                if (node.y < TOP_MARGIN + node.radius || node.y > height - BOTTOM_MARGIN - node.radius) node.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                ctx.fillStyle = ARCHIVAL_BLUE;
+                ctx.shadowColor = ARCHIVAL_BLUE_GLOW;
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        function getHoveredNode(x, y) {
+            for (let i = nodes.length - 1; i >= 0; i--) {
+                const node = nodes[i];
+                const dx = node.x - x;
+                const dy = node.y - y;
+                if (dx * dx + dy * dy < (node.radius + 10) * (node.radius + 10)) {
+                    return node;
+                }
+            }
+            return null;
+        }
+
+        // --- NEW: Function to check if all nodes form a single connected graph ---
+        function checkCompletion() {
+            if (nodes.length === 0 || isComplete) return;
+
+            const visited = new Set();
+            const queue = [nodes[0]];
+            visited.add(nodes[0]);
+
+            while (queue.length > 0) {
+                const currentNode = queue.shift();
+                lines.forEach(line => {
+                    let neighbor = null;
+                    if (line.start === currentNode && !visited.has(line.end)) {
+                        neighbor = line.end;
+                    } else if (line.end === currentNode && !visited.has(line.start)) {
+                        neighbor = line.start;
+                    }
+
+                    if (neighbor) {
+                        visited.add(neighbor);
+                        queue.push(neighbor);
+                    }
+                });
+            }
+
+            if (visited.size === nodes.length) {
+                isComplete = true;
+                playCompletionSound();
+                document.getElementById('completion-message').classList.add('visible');
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        
+            const hoveredNode = getHoveredNode(e.clientX, e.clientY);
+            if (hoveredNode) {
+                dragging = true;
+                startNode = hoveredNode;
+                
+                const instruction = document.getElementById('instruction');
+                if(instruction) instruction.style.opacity = 0;
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            
+            const hoveredNode = getHoveredNode(e.clientX, e.clientY);
+            canvas.style.cursor = hoveredNode ? 'grab' : 'default';
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (dragging && startNode) {
+                const endNode = getHoveredNode(e.clientX, e.clientY);
+                if (endNode && endNode !== startNode) {
+                    const existingLine = lines.find(line => 
+                        (line.start === startNode && line.end === endNode) ||
+                        (line.start === endNode && line.end === startNode)
+                    );
+                    if (!existingLine) {
+                         lines.push({ start: startNode, end: endNode, createdAt: Date.now() });
+                         playConnectionSound();
+                         // --- REVISED: Check for completion after every new connection ---
+                         checkCompletion();
+                    }
+                }
+            }
+            dragging = false;
+            startNode = null;
+        });
+        
+        const statementLink = document.getElementById('statement-link');
+        const statementModal = document.getElementById('statement-modal');
+
+        statementLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            statementModal.classList.add('visible');
+        });
+
+        statementModal.addEventListener('click', () => {
+            statementModal.classList.remove('visible');
+        });
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>
+
