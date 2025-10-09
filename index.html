@@ -475,6 +475,51 @@
             dragging = false;
             startNode = null;
         });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const touch = e.touches[0];
+            const hoveredNode = getHoveredNode(touch.clientX, touch.clientY);
+            if (hoveredNode) {
+                dragging = true;
+                startNode = hoveredNode;
+                const instruction = document.getElementById('instruction');
+                if(instruction) instruction.style.opacity = 0;
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                mouse.x = touch.clientX;
+                mouse.y = touch.clientY;
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (dragging && startNode) {
+                const touch = e.changedTouches[0];
+                const endNode = getHoveredNode(touch.clientX, touch.clientY);
+                if (endNode && endNode !== startNode) {
+                    const existingLine = lines.find(line => 
+                        (line.start === startNode && line.end === endNode) ||
+                        (line.start === endNode && line.end === startNode)
+                    );
+                    if (!existingLine) {
+                         lines.push({ start: startNode, end: endNode, createdAt: Date.now() });
+                         playConnectionSound();
+                         checkCompletion();
+                    }
+                }
+            }
+            dragging = false;
+            startNode = null;
+        });
         
         const statementLink = document.getElementById('statement-link');
         const statementModal = document.getElementById('statement-modal');
